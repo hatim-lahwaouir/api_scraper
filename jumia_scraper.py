@@ -1,8 +1,10 @@
 from  selenium import webdriver
+from selenium.webdriver import ChromeOptions
 import sys
 from selectolax.parser import HTMLParser
 from selectolax.parser import Node
 import json
+import re
 
 
 class ProductUrlScraper:
@@ -16,7 +18,9 @@ class ProductUrlScraper:
 
 
     def get_html(self):
-        self.driver = webdriver.Firefox()
+        options = ChromeOptions()
+        options.add_argument("--headless=new")
+        self.driver = webdriver.Chrome(options=options)
         self.driver.get(self.url)
         self.html = self.driver.page_source
         
@@ -29,7 +33,6 @@ class ProductUrlScraper:
         products = tree.css("article.prd a.core")[:self.n_products]
         for pr in products:
             self.data.append(self.domainName + pr.attributes['href'])
-
 
 
 
@@ -54,7 +57,9 @@ class ProductScraper:
         self.data = {}
 
     def get_html(self):
-        self.driver = webdriver.Firefox()
+        options = ChromeOptions()
+        options.add_argument("--headless=new")
+        self.driver = webdriver.Chrome(options=options)
         self.driver.get(self.url)
         self.html = self.driver.page_source
         
@@ -63,13 +68,14 @@ class ProductScraper:
     def parse_html(self) -> None:
         tree = HTMLParser(self.html)
         infos : list[Node] = tree.css(".col10 span")[:3]
-        
+        keys = ['price_now', 'price_before', 'discount_percentage']
+        pattern = re.compile(r'(\d[\d.,]*)\b')
+        for i,info in enumerate(infos):
+            prices = pattern.findall(info.text())
+            if len(prices) == 0:
+                break
+            self.data[keys[i]] = prices[0].replace(',', '')
 
-        self.data['price_now'] = infos[0].text()
-        self.data['price_before'] = infos[1].text()
-        self.data['discount_percentage'] = infos[2].text()
-
-    
 
 
 
@@ -87,6 +93,7 @@ class ProductScraper:
 
 
 def main(argv: list[str]) -> int:
+
     if len(sys.argv) != 2:
         print('Invalid argument')
         return 0
@@ -109,10 +116,6 @@ def main(argv: list[str]) -> int:
 
         file.write(json.dumps(res,indent=4))
 
-
-
-
-
 if __name__ == '__main__':
     main(sys.argv)
-        
+
