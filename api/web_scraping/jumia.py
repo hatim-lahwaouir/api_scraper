@@ -1,10 +1,12 @@
 from  selenium import webdriver
-from selenium.webdriver import ChromeOptions
+from  selenium.webdriver import ChromeOptions
 import sys
 from selectolax.parser import HTMLParser
 from selectolax.parser import Node
 import json
 import re
+from concurrent.futures import ThreadPoolExecutor
+
 
 
 class ProductUrlScraper:
@@ -92,30 +94,15 @@ class ProductScraper:
 
 
 
-def main(argv: list[str]) -> int:
 
-    if len(sys.argv) != 2:
-        print('Invalid argument')
-        return 0
-    jumiaScraper = ProductUrlScraper(f"https://www.jumia.ma/catalog/?q={argv[1]}", 'https://www.jumia.ma')
-    jumiaScraper.get_html()
-    jumiaScraper.parse_html()
+def jumiaProductScraper(url):
 
-    urls = jumiaScraper.get_data()
-
-
-    res = {}
-    for url in urls:   
-        productScraper = ProductScraper(url)
-        productScraper.get_html()
-        productScraper.parse_html()
-
-        res[url] = productScraper.get_data()
-
-        file = open('data.json', 'w')
-
-        file.write(json.dumps(res,indent=4))
-
-if __name__ == '__main__':
-    main(sys.argv)
+    productScraper = ProductScraper(url)
+    productScraper.get_html()
+    productScraper.parse_html()
+   
+    res = productScraper.get_data()
+    res['url'] = url
+    return res 
+ 
 
